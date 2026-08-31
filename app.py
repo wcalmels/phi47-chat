@@ -280,14 +280,24 @@ function esc(t) {
 
 function render(t) {
   t = String(t);
-  t = t.replace(/```[a-z]*\n?([\s\S]*?)```/g, function(_,c){ return '<pre><code>' + esc(c.trim()) + '</code></pre>'; });
-  t = t.replace(/`([^`]+)`/g, '<code>$1</code>');
-  t = t.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-  t = t.replace(/^## (.+)$/gm, '<h3 style="color:var(--gold);margin:8px 0 4px">$1</h3>');
-  t = t.replace(/\n/g, '<br>');
-  return t;
+  // Split on triple backtick to handle code blocks
+  var parts = t.split('\x60\x60\x60');
+  var result = '';
+  for (var i = 0; i < parts.length; i++) {
+    if (i % 2 === 0) {
+      var p = parts[i];
+      p = p.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+      p = p.replace(/\n/g, '<br>');
+      result += p;
+    } else {
+      var code = parts[i];
+      var nl = code.indexOf('\n');
+      if (nl >= 0) code = code.slice(nl + 1);
+      result += '<pre><code>' + esc(code.trim()) + '</code></pre>';
+    }
+  }
+  return result;
 }
-
 function addMsg(role, text, label) {
   var m = document.getElementById('msgs');
   var w = document.getElementById('wlc');
