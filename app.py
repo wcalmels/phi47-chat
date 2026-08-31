@@ -182,7 +182,18 @@ cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrin
 <div class="side">
   <div class="logo"><h1>phi47 Agents</h1><p>TUCH Systems - Maipu Lab</p></div>
   <div class="alabel">AGENTES</div>
-  <div class="alist" id="alist"></div>
+  <div class="alist" id="alist">
+<button class="abtn active" id="ab-orchestrator" onclick="pick('orchestrator','ORC','Phi47-Orchestrator','Coordina todos los agentes')"><div class="ainfo"><div class="aname">Phi47-Orchestrator</div><div class="adesc">Coordina todos los agentes</div></div></button>
+<button class="abtn" id="ab-architect" onclick="pick('architect','ARC','Phi47-Architect','Specs y decisiones tecnicas')"><div class="ainfo"><div class="aname">Phi47-Architect</div><div class="adesc">Specs y decisiones tecnicas</div></div></button>
+<button class="abtn" id="ab-colmena" onclick="pick('colmena','COL','Colmena-Dev','OS auto-constructivo L1-L25')"><div class="ainfo"><div class="aname">Colmena-Dev</div><div class="adesc">OS auto-constructivo L1-L25</div></div></button>
+<button class="abtn" id="ab-colmente" onclick="pick('colmente','MEN','Colmente-Dev','Conciencia IIT + agentes')"><div class="ainfo"><div class="aname">Colmente-Dev</div><div class="adesc">Conciencia IIT + agentes</div></div></button>
+<button class="abtn" id="ab-cyberguard" onclick="pick('cyberguard','CYB','CyberGuard-Dev','TDA, FPR=0.45%, zero-day')"><div class="ainfo"><div class="aname">CyberGuard-Dev</div><div class="adesc">TDA, FPR=0.45%, zero-day</div></div></button>
+<button class="abtn" id="ab-nemosine" onclick="pick('nemosine','NEM','Nemosine-Dev','SQLite, Welford, EMA')"><div class="ainfo"><div class="aname">Nemosine-Dev</div><div class="adesc">SQLite, Welford, EMA</div></div></button>
+<button class="abtn" id="ab-tcw_scm" onclick="pick('tcw_scm','TCW','TCW-SCM-Dev','Validacion cruzada')"><div class="ainfo"><div class="aname">TCW-SCM-Dev</div><div class="adesc">Validacion cruzada</div></div></button>
+<button class="abtn" id="ab-hav" onclick="pick('hav','HAV','HAV-Dev','Anti-alucinaciones')"><div class="ainfo"><div class="aname">HAV-Dev</div><div class="adesc">Anti-alucinaciones</div></div></button>
+<button class="abtn" id="ab-test" onclick="pick('test','QA','QA-phi47','Tests, seed=42, CI')"><div class="ainfo"><div class="aname">QA-phi47</div><div class="adesc">Tests, seed=42, CI</div></div></button>
+<button class="abtn" id="ab-docs" onclick="pick('docs','DOC','Docs-phi47','Papers, READMEs, pitches')"><div class="ainfo"><div class="aname">Docs-phi47</div><div class="adesc">Papers, READMEs, pitches</div></div></button>
+</div>
   <div class="foot">
     <button class="nbtn" onclick="newChat()">+ Nueva conversacion</button>
     <span class="sdot" id="sdot"></span><span class="stxt" id="stxt">conectando...</span>
@@ -233,30 +244,6 @@ var cur = 'orchestrator';
 var busy = false;
 
 function init() {
-  fetch('/agents')
-    .then(function(r){ return r.json(); })
-    .then(function(data) {
-      var list = document.getElementById('alist');
-      list.innerHTML = '';
-      Object.keys(data).forEach(function(key) {
-        var a = data[key];
-        var btn = document.createElement('button');
-        btn.className = 'abtn' + (key === cur ? ' active' : '');
-        btn.id = 'ab-' + key;
-        btn.innerHTML = '<div class="ainfo">'
-          + '<div class="aname">' + a.name + '</div>'
-          + '<div class="adesc">' + a.desc + '</div></div>';
-        btn.onclick = (function(k, ag) {
-          return function() { pick(k, ag); };
-        })(key, a);
-        list.appendChild(btn);
-      });
-    })
-    .catch(function(e) {
-      document.getElementById('alist').innerHTML =
-        '<div style="padding:12px;color:#FF4757;font-size:11px">Error: ' + e.message + '</div>';
-    });
-
   fetch('/health')
     .then(function(r){ return r.json(); })
     .then(function(h) {
@@ -275,14 +262,14 @@ function init() {
     });
 }
 
-function pick(key, agent) {
+function pick(key, label, name, desc) {
   cur = key;
   document.querySelectorAll('.abtn').forEach(function(b) { b.classList.remove('active'); });
   var btn = document.getElementById('ab-' + key);
   if (btn) btn.classList.add('active');
-  document.getElementById('hemi').textContent = agent.emoji || key.slice(0,3).toUpperCase();
-  document.getElementById('hname').textContent = agent.name;
-  document.getElementById('hdesc').textContent = agent.desc;
+  document.getElementById('hemi').textContent = label || key.slice(0,3).toUpperCase();
+  document.getElementById('hname').textContent = name || key;
+  document.getElementById('hdesc').textContent = desc || '';
   document.getElementById('badge').textContent = key === 'orchestrator' ? 'auto-routing' : 'agente: ' + key;
   document.getElementById('inp').focus();
 }
