@@ -15,7 +15,6 @@ import os, sys, json, time, uuid, re, threading
 from datetime import datetime, timezone
 from collections import deque
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'phi47-agents'))
 
 from flask import Flask, Response, request, jsonify, render_template_string
 from flask_cors import CORS
@@ -766,12 +765,24 @@ let agentsData   = {};
 
 // ── Init ──────────────────────────────────────────────
 async function init() {
-  // Load agents
-  const r = await fetch('/agents');
-  agentsData = await r.json();
+  // Load agents — embedded data for instant load
+  const EMBEDDED = {"orchestrator": {"name": "Phi47-Orchestrator", "emoji": "🎯", "color": "#E8A020", "desc": "Coordina todos los agentes"}, "architect": {"name": "Phi47-Architect", "emoji": "🏗️", "color": "#00BFFF", "desc": "Specs y decisiones técnicas"}, "colmena": {"name": "Colmena-Dev", "emoji": "⬡", "color": "#00C875", "desc": "OS auto-constructivo L1-L25"}, "colmente": {"name": "Colmente-Dev", "emoji": "🧠", "color": "#FF9F43", "desc": "IIT + agentes autónomos"}, "cyberguard": {"name": "CyberGuard-Dev", "emoji": "🛡️", "color": "#FF4757", "desc": "TDA, FPR=0.45%, zero-day"}, "nemosine": {"name": "Nemosine-Dev", "emoji": "🧬", "color": "#A855F7", "desc": "SQLite, Welford, EMA"}, "tcw_scm": {"name": "TCW-SCM-Dev", "emoji": "⚙️", "color": "#6888A4", "desc": "Validación cruzada"}, "hav": {"name": "HAV-Dev", "emoji": "🔍", "color": "#00BFFF", "desc": "Anti-alucinaciones"}, "test": {"name": "QA-phi47", "emoji": "✅", "color": "#00C875", "desc": "Tests, seed=42, CI"}, "docs": {"name": "Docs-phi47", "emoji": "📚", "color": "#E8A020", "desc": "Papers, READMEs, pitches"}};
+  agentsData = EMBEDDED;
   renderAgents();
+  // Also fetch from server to get fresh data
+  try {
+    const r = await fetch('/agents');
+    const fresh = await r.json();
+    if (Object.keys(fresh).length > 0) {
+      agentsData = fresh;
+      renderAgents();
+    }
+  } catch(e) {
+    console.log('Using embedded agent data');
+  }
 
   // Check API status
+  try {
   const h = await fetch('/health').then(r=>r.json());
   const dot  = document.getElementById('status-dot');
   const text = document.getElementById('status-text');
@@ -923,7 +934,7 @@ function appendMessage(role, text, emoji, name, ts='', agentKey='', color='') {
 
 function renderMarkdown(text) {
   // Code blocks
-  text = text.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) =>
+  text = text.replace(/[`]{3}(\w*)[\n]?([\s\S]*?)[`]{3}/g, (_, lang, code) =>
     `<pre><code class="lang-${lang}">${escHtml(code.trim())}</code></pre>`);
   // Inline code
   text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
