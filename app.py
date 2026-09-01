@@ -324,9 +324,7 @@ function send() {
   addMsg('user', msg, 'VOS');
   inp.value = ''; rsz(inp);
 
-  var agkey = cur;
-  var label = agkey.slice(0,3).toUpperCase();
-
+  // First route to get the right agent
   fetch('/route', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
@@ -334,54 +332,61 @@ function send() {
   })
   .then(function(r){ return r.json(); })
   .then(function(rt) {
-    agkey = rt.agent;
-    label = rt.emoji || agkey.slice(0,3).toUpperCase();
-    return fetch('/chat', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({session_id: sid, message: msg, agent: agkey})
-    });
-  })
-  .then(function(resp) {
+    var agkey = rt.agent || cur;
+    var label = (agkey.slice(0,3)).toUpperCase();
+
+    // Add agent message bubble
     var el = addMsg('agent', '', label);
     var bbl = el.querySelector('.bbl');
-    var crsr = document.createElement('span');
-    crsr.className = 'cur';
-    bbl.appendChild(crsr);
-
+    bbl.innerHTML = '<span class="cur"></span>';
     var full = '';
-    var reader = resp.body.getReader();
-    var dec = new TextDecoder();
-    var buf = '';
 
-    function pump() {
-      return reader.read().then(function(res) {
-        if (res.done) return;
-        buf += dec.decode(res.value, {stream: true});
-        var lines = buf.split('\n');
-        buf = lines.pop();
-        lines.forEach(function(line) {
-          if (!line.startsWith('data:')) return;
-          try {
-            var d = JSON.parse(line.slice(5).trim());
-            if (d.token) {
-              full += d.token;
-              bbl.innerHTML = render(full);
-              bbl.appendChild(crsr);
-              document.getElementById('msgs').scrollTop = 99999;
-            }
-            if (d.done) {
-              crsr.remove();
-              bbl.innerHTML = render(full);
-              busy = false;
-              document.getElementById('sbtn').disabled = false;
-            }
-          } catch(e) {}
-        });
-        return pump();
+    // Use XMLHttpRequest for better SSE compatibility
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', '/chat', true);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    var lastIdx = 0;
+
+    xhr.onprogress = function() {
+      var chunk = xhr.responseText.slice(lastIdx);
+      lastIdx = xhr.responseText.length;
+      var lines = chunk.split('\n');
+      lines.forEach(function(line) {
+        line = line.trim();
+        if (!line.startsWith('data:')) return;
+        try {
+          var d = JSON.parse(line.slice(5).trim());
+          if (d.token) {
+            full += d.token;
+            bbl.innerHTML = render(full);
+            document.getElementById('msgs').scrollTop = 99999;
+          }
+          if (d.done) {
+            bbl.innerHTML = render(full);
+            busy = false;
+            document.getElementById('sbtn').disabled = false;
+          }
+        } catch(e) {}
       });
-    }
-    return pump();
+    };
+
+    xhr.onload = function() {
+      bbl.innerHTML = render(full) || '[Sin respuesta]';
+      busy = false;
+      document.getElementById('sbtn').disabled = false;
+    };
+
+    xhr.onerror = function() {
+      bbl.innerHTML = 'Error de conexion';
+      busy = false;
+      document.getElementById('sbtn').disabled = false;
+    };
+
+    xhr.send(JSON.stringify({
+      session_id: sid,
+      message: msg,
+      agent: agkey
+    }));
   })
   .catch(function(e) {
     addMsg('agent', 'Error: ' + e.message, 'ERR');
@@ -389,7 +394,6 @@ function send() {
     document.getElementById('sbtn').disabled = false;
   });
 }
-
 function qs(m) { document.getElementById('inp').value = m; send(); }
 function hkey(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }
 function rsz(el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 150) + 'px'; }
