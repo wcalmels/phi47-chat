@@ -239,8 +239,47 @@ cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrin
 </div>
 </div>
 <script>
-var sid = 'sess_' + Math.random().toString(36).slice(2,10);
+// Make functions globally available immediately
+window.pick = function(key, label, name, desc) {
+  var cur_el = document.getElementById('hemi');
+  if (!cur_el) return;
+  window._cur = key;
+  document.querySelectorAll('.abtn').forEach(function(b) { b.classList.remove('active'); });
+  var btn = document.getElementById('ab-' + key);
+  if (btn) btn.classList.add('active');
+  document.getElementById('hemi').textContent = label || key.slice(0,3).toUpperCase();
+  document.getElementById('hname').textContent = name || key;
+  document.getElementById('hdesc').textContent = desc || '';
+  document.getElementById('badge').textContent = key === 'orchestrator' ? 'auto-routing' : 'agente: ' + key;
+  document.getElementById('inp').focus();
+};
+window.send = function() {
+  if (window._send) window._send();
+};
+window.qs = function(m) {
+  document.getElementById('inp').value = m;
+  window.send();
+};
+window.hkey = function(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); window.send(); }
+};
+window.rsz = function(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 150) + 'px';
+};
+window.newChat = function() {
+  window._sid = 'sess_' + Math.random().toString(36).slice(2,10);
+  document.getElementById('msgs').innerHTML = '<div class="wlc" id="wlc"><h2>Nueva conversacion</h2></div>';
+};
+window.clearChat = function() {
+  fetch('/session/' + window._sid + '/clear', {method: 'POST'});
+  document.getElementById('msgs').innerHTML = '';
+};
+
+window._sid = 'sess_' + Math.random().toString(36).slice(2,10);
+var sid = window._sid;
 var cur = 'orchestrator';
+window._cur = cur;
 var busy = false;
 
 function init() {
@@ -315,7 +354,7 @@ function addMsg(role, text, label) {
   return d;
 }
 
-function send() {
+window._send = function send() {
   var inp = document.getElementById('inp');
   var msg = inp.value.trim();
   if (!msg || busy) return;
@@ -383,7 +422,7 @@ function send() {
     };
 
     xhr.send(JSON.stringify({
-      session_id: sid,
+      session_id: window._sid || sid,
       message: msg,
       agent: agkey
     }));
@@ -394,7 +433,8 @@ function send() {
     document.getElementById('sbtn').disabled = false;
   });
 }
-function qs(m) { document.getElementById('inp').value = m; send(); }
+};
+function qs(m) { document.getElementById('inp').value = m; window._send(); }
 function hkey(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }
 function rsz(el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 150) + 'px'; }
 function newChat() {
